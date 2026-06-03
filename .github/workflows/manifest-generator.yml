@@ -1,0 +1,37 @@
+name: Generate manifest.json
+
+on:
+  push:
+  workflow_dispatch:  # allows manual triggering
+
+jobs:
+  generate-manifest:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+
+    - name: Run manifest generator
+      run: |
+        python .github/scripts/generate_manifest.py
+
+    - name: Commit and push manifest
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add pibody/manifest.json
+        git commit -m "Auto-generate manifest.json" || echo "No changes to commit"
+        git push
+
+permissions:
+  contents: write  # Needed to allow git push

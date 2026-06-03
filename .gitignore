@@ -1,0 +1,8 @@
+.vscode
+.micropico
+*.code-workspace
+__pycache__
+*.pyc
+tmp.py
+stubs
+test
