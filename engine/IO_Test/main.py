@@ -58,9 +58,6 @@ class Sphere3D:
         return sx, sy, z
 
     def _build_points(self):
-        """Compute all projected points for current rotation.
-        Returns list of line-strip lists: [ [(x,y,visible), ...], ... ]
-        """
         pi  = math.pi
         seg = self.SEGMENTS
         strips = []
@@ -126,15 +123,12 @@ class Sphere3D:
             prev_strips, prev_axes = self._prev_pts
             self._draw_strips(prev_strips, prev_axes, drv.BLACK)
 
-        # draw border once (static, never erased)
         if self._prev_pts is None:
             r = self.r
             drv.draw_round_rectangle(self.cx - r, self.cy - r, r*2, r*2, r, drv.WHITE)
 
-        # draw new frame
         self._draw_strips(new_strips, new_axes, self.COL_GRID)
 
-        # draw axes in colour on top
         labels = ['X', 'Y', 'Z']
         cols   = [self.COL_X, self.COL_Y, self.COL_Z]
         for i, (tx, ty) in enumerate(new_axes):
@@ -144,7 +138,6 @@ class Sphere3D:
         self._prev_pts = (new_strips, new_axes)
 
     def invalidate(self):
-        """Call when switching screens so next draw does a full redraw."""
         self._prev_pts = None
 
 
@@ -209,12 +202,9 @@ class BubbleLevel:
             if self._prev_bx is not None:
                 drv.fill_round_rectangle(
                     self._prev_bx - 8, self._prev_by - 8, 17, 17, 8, drv.BLACK)
-                # restore crosshair under erased area
                 drv.hline(cx - r, cy, r * 2, self.COL_CROSS)
                 drv.vline(cx, cy - r, r * 2, self.COL_CROSS)
                 drv.fill_round_rectangle(cx - 3, cy - 3, 6, 6, 3, self.COL_CENTER)
-
-            # draw new bubble
             drv.fill_round_rectangle(bx - 7, by - 7, 14, 14, 7, self.COL_BUBBLE)
             drv.draw_round_rectangle(bx - 8, by - 8, 16, 16, 8, drv.WHITE)
             drv.fill_round_rectangle(cx - 3, cy - 3, 6,  6,  3, self.COL_CENTER)
@@ -222,7 +212,6 @@ class BubbleLevel:
             self._prev_bx = bx
             self._prev_by = by
 
-        # --- Z bar ---
         bx0        = cx + r + 6
         bh         = r * 2
         bw         = 10
@@ -256,8 +245,6 @@ class BubbleLevel:
 
 
 class GyroValues:
-    """Draws the numeric readout panel and updates only changed lines."""
-
     _LABELS = ['GX:', 'GY:', 'GZ:', 'AX:', 'AY:', 'AZ:']
     _COLS   = [0x07FF, 0x07FF, 0x07FF, 0x07E0, 0x07E0, 0x07E0]  # CYAN x3, GREEN x3
     _YS     = [24, 40, 56, 96, 112, 128]
@@ -299,7 +286,7 @@ class ButtonState:
     _FIELDS = ('left', 'right', 'up', 'down', 'a', 'b')
 
     def __init__(self, left=False, right=False, up=False,
-                 down=False, a=False, b=False):
+                down=False, a=False, b=False):
         self.left  = left
         self.right = right
         self.up    = up
@@ -418,9 +405,10 @@ class IOTest:
         self._ab_lock = self.input.is_A() and self.input.is_B()
         self._running = True
     def run(self):
-        # self.drv.fill(self.drv.BLACK)
-        # self.drv.draw_logo()
-        # sleep(2)
+        if __name__ == '__main__':
+            self.drv.fill(self.drv.BLACK)
+            self.drv.draw_logo()
+            sleep(2)
         self.drv.fill(self.drv.BLACK)
 
         while self._running:

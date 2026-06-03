@@ -11,7 +11,7 @@ class Demo:
         self._sel_pos  = 0
         self._prv_pos  = 0
         self._needs_redraw = True
-        self._header_h = 0  # populated by _draw_header(), used by _draw_list()
+        self._header_h = 0
 
         #* Layout constants
         self._item_h   = 22
@@ -22,10 +22,9 @@ class Demo:
         self._btn_down_lock = input.is_down()
         self._btn_a_lock    = input.is_A()
 
-    # -- Main loop ----------------------------------------------
     def run(self):
         self.drv.fill(self.drv.BLACK)
-        # self.drv.show()              # initialize display state BEFORE drawing anything
+        self.drv.show()              # initialize display state BEFORE drawing anything
 
         self.drv.draw_logo()
         sleep(5)
@@ -43,7 +42,7 @@ class Demo:
                 self.drv.show()
                 self._needs_redraw = False
 
-    # -- Input --------------------------------------------------
+    # === Input
     def _handle_input(self):
         if input.is_up():
             if not self._btn_up_lock:
@@ -66,7 +65,7 @@ class Demo:
         else:
             self._btn_a_lock = False
 
-    # -- Navigation ---------------------------------------------
+    # === Navigation 
     def _move(self, delta: int):
         new_pos = self._sel_pos + delta
         if 0 <= new_pos < len(GamesInfoList):
@@ -79,17 +78,15 @@ class Demo:
         self.drv.show()
         GamesInfoList[self._sel_pos].call_func(self.drv, input)
 
-        # game returned - restore menu
         self.drv.fill(self.drv.BLACK)
-        self.drv.show()              # flush clear before redrawing menu
+        self.drv.show()              
         self._header_h = self._draw_header()
-        self._prv_pos  = self._sel_pos   # prevent ghost-erase on first redraw
+        self._prv_pos  = self._sel_pos
         self._needs_redraw = True
         self._btn_a_lock   = input.is_A()
 
     # -- Drawing ------------------------------------------------
     def _draw_header(self) -> int:
-        """Draw header bar, return its pixel height so _draw_list can sit below it."""
         text  = "Choose Game"
         bg    = self.drv.color(128, 128, 128)
         w     = self.drv.width
@@ -108,7 +105,7 @@ class Demo:
 
     def _draw_list(self):
         x        = 20
-        y        = self._header_h + 8   # dynamic: always 8px below actual header
+        y        = self._header_h + 8
         w        = self.drv.width
         txt_size = 1
         sel_bg   = self.drv.color(40, 40, 100)

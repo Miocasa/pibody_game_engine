@@ -3,7 +3,6 @@ import random
 from time import sleep_ms # type: ignore
 import _thread
 
-# Framework imports
 from engine import (
     DisplayDriver, Game, World, Actor,
     Color, Font, GameImage, Buzzer
@@ -13,8 +12,7 @@ from engine import (
 from engine.display_drivers.st7789_adapter import ST7789Driver # default driver
 from engine import Input
 
-# input: Input = None # you can create/configure input in function that launch game
-local_in: Input = Input() # using default pins
+local_in: Input = Input()
 sound = Buzzer()
 
 # Game constants
@@ -547,14 +545,12 @@ def run_space_invaders(display=None, input=None):
     if display is None:
         display = ST7789Driver(rotation=1)
     if input is None:
-        input = Input()
+        local_in = input
     
-    global local_in
-    local_in = input
 
     world = SpaceInvadersWorld(sound=sound)
     Game.init(display, world, sound=sound)
-    Game.set_speed(60)
+    # Game.set_speed(60)
 
     Game._running = True
     while Game._running:

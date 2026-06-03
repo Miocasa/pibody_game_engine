@@ -36,7 +36,7 @@ class GameWorld(World):
 class Player(Actor):
     def __init__(self, width: int, height: int, color: Color):
         super().__init__()
-
+        
         img = GameImage(width, height)
         img.set_color(color)
         img.fill_rect(0, 0, width, height)
@@ -52,8 +52,9 @@ class Player(Actor):
             Game._running = False
             return
         if wrld.input.is_A():
-            self.set_rotation(25)
-            self.move_with_rotation(-20)
+            # self.set_rotation(25)
+            # self.move_with_rotation(-20)
+            self.move(x=10, y=-10)
         speed = 4
         x = self._x
         y = self._y

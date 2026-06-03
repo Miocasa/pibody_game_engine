@@ -2,7 +2,7 @@ import math
 import random
 from engine import Input
 import time 
-from micropython import const
+from micropython import const # type: ignore
 class DisplayDriver:
     """
     Hardware Abstraction Layer for the display.
@@ -383,19 +383,10 @@ class DisplayDriver:
                     color=self.BLACK, bg=self.WHITE)
 
 
-# =============================================================================
-#  SoundDriver  -  HAL for sound output
-# =============================================================================
 
+#  SoundDriver - HAL for sound 
 class SoundDriver:
     """
-    Hardware Abstraction Layer for sound output.
-    All methods are stubs - override in a subclass or pass any object
-    that implements the same interface (e.g. pibody.Buzzer).
-
-    Compatible with pibody.Buzzer out of the box - duck typing works,
-    no inheritance required.
-
     Usage:
         Game.init(display, world, sound=Buzzer(12))
         # or later:
@@ -403,49 +394,43 @@ class SoundDriver:
     """
 
     def volume(self, volume=None):
-        """Get or set volume (0.0 - 1.0)."""
         # === SOUND IMPL ===
+        pass
 
     def make_sound(self, freq, volume, duration):
-        """Play a raw tone at freq Hz for duration seconds."""
         # === SOUND IMPL ===
+        pass
 
     def beep(self):
-        """Short high beep."""
         # === SOUND IMPL ===
+        pass
 
     def boop(self):
-        """Short low beep."""
         # === SOUND IMPL ===
+        pass
 
     def on(self):
-        """Start continuous tone at current volume/freq."""
         # === SOUND IMPL ===
+        pass
 
     def off(self):
-        """Stop sound immediately."""
         # === SOUND IMPL ===
+        pass
 
-    def note_to_freq(self, note: str) -> float:
-        """Convert note name (e.g. 'A4', 'C#5') to Hz."""
+    def note_to_freq(self, note: str):
         # === SOUND IMPL ===
-        return 440.0
+        pass
 
     def play_note(self, note: str, volume=None, duration=0.5):
-        """Play a single note by name."""
         # === SOUND IMPL ===
+        pass
 
     def play_melody(self, melody, tempo=0.3):
-        """Play a list of note names, e.g. ['C4', 'E4', 'G4']."""
         # === SOUND IMPL ===
-
-
-# =============================================================================
-#  Color
-# =============================================================================
+        pass
 
 class Color:
-    """RGB color (r, g, b, alpha 0-255)."""
+    """RGB color (r, g, b)."""
     WHITE      = None
     LIGHT_GRAY = None
     GRAY       = None
@@ -528,7 +513,6 @@ Color.BLUE       = Color(0,   0,   255)
 # =============================================================================
 
 class Font:
-    """Font descriptor. Rendering is delegated to DisplayDriver.text()."""
     def __init__(self, name_or_bold=None, bold=False, italic=False, size=12):
         if isinstance(name_or_bold, bool):
             self._bold = name_or_bold; self._italic = bold
@@ -566,12 +550,9 @@ class Font:
             self._name, self._size, self._bold, self._italic)
 
 
-# =============================================================================
-#  GameImage  -  offscreen canvas
-# =============================================================================
+#  GameImage - offscreen canvas
 
 class GameImage:
-    """Image buffer. Pixels stored as bytearray (RGB565, 2 bytes/pixel)."""
     _BYTES_PER_PIXEL = 2
 
     def __init__(self, width_or_src=None, height=None):
@@ -711,7 +692,7 @@ class GameImage:
             self.draw_line(x_points[i], y_points[i], x_points[j], y_points[j])
 
     def draw_string(self, string: str, x: int, y: int):
-        # === DISPLAY IMPL: call your font engine ===
+        # === DISPLAY IMPL:
         pass
 
     def draw_image(self, image: "GameImage", x: int, y: int):
@@ -772,43 +753,13 @@ class GameImage:
         return "GameImage({}x{})".format(self.width, self.height)
 
 
-# =============================================================================
-#  GameSound  -  sound clip backed by SoundDriver / Buzzer
-# =============================================================================
-
 class GameSound:
-    """
-    Sound clip for use inside World / Actor.
-
-    source can be:
-        - note string :  "A4", "C#5"
-        - melody list :  ["C4", "E4", "G4", "C5"]
-        - filename str:  "jump.wav"  (falls back to beep() on a buzzer)
-
-    The actual audio is produced by whatever driver was passed to
-    Game.init() or Game.set_sound().  Pass a pibody.Buzzer directly -
-    no adapter needed.
-
-    Example:
-        Game.init(display, world, sound=Buzzer(12))
-
-        coin  = GameSound("E5")
-        jump  = GameSound(["C4", "E4", "G4"])
-        alarm = GameSound("alarm.wav")   # falls back to beep
-
-        coin.play()
-        jump.play()
-        jump.set_volume(80)
-    """
-
     def __init__(self, source):
         # source: note str, melody list, or filename str
         self._source  = source
         self._volume  = 1.0      # 0.0 - 1.0
         self._playing = False
         self._looping = False
-
-    # -- Internal -------------------------------------------------------------
 
     def _play_once(self):
         drv = Game._sound
@@ -817,8 +768,7 @@ class GameSound:
         src = self._source
         if isinstance(src, list):
             drv.play_melody(src)
-        elif isinstance(src, str):
-            # try as note name; fall back to beep for filenames
+        elif isinstance(src, str): # try as note name; fall back to beep for filenames
             try:
                 drv.play_note(src, volume=self._volume)
             except (ValueError, AttributeError):
@@ -826,22 +776,17 @@ class GameSound:
         else:
             drv.beep()
 
-    # -- Public API -----------------------------------------------------------
-
     def play(self):
-        """Play once."""
         self._playing = True
         self._play_once()
         self._playing = False
 
     def play_loop(self):
-        """Mark as looping; play once (loop control is caller's responsibility)."""
         self._looping = True
         self._playing = True
         self._play_once()
 
     def stop(self):
-        """Stop sound and reset loop flag."""
         drv = Game._sound
         if drv:
             drv.off()
@@ -849,7 +794,6 @@ class GameSound:
         self._looping = False
 
     def pause(self):
-        """Silence without resetting loop flag."""
         drv = Game._sound
         if drv:
             drv.off()
@@ -859,11 +803,9 @@ class GameSound:
         return self._playing
 
     def get_volume(self) -> int:
-        """Return volume as 0-100 integer."""
         return int(self._volume * 100)
 
     def set_volume(self, level: int):
-        """Set volume 0-100. Also updates the driver immediately."""
         self._volume = max(0.0, min(1.0, level / 100.0))
         drv = Game._sound
         if drv:
@@ -873,15 +815,12 @@ class GameSound:
         return "GameSound({}, playing={})".format(self._source, self._playing)
 
 
-# =============================================================================
-#  Game  -  simulation controller
-# =============================================================================
 
-class Game:
-    """Static controller. Call Game.init(display, world, sound=...) to start."""
+#  Game - simulation controller
+class Game: # static class
     _world      = None
     _display    = None
-    _sound      = None   # SoundDriver or pibody.Buzzer or None
+    _sound      = None   # SoundDriver or subclass or None
     _running    = False
     _speed      = 50
     _keys_down  = set()
@@ -891,12 +830,11 @@ class Game:
     @classmethod
     def init(cls, display: DisplayDriver, world: "World", sound=None, fps: int = 30, ui_fps: int = 30):
         """
-        Initialise the engine.
-
-        display  - DisplayDriver (or subclass / adapter)
-        world    - World instance
-        sound    - optional SoundDriver, pibody.Buzzer, or any duck-typed
-                    object with play_note / play_melody / beep / off methods
+        @display - DisplayDriver (or subclass / adapter)
+        @world   - World instance
+        @sound   - Optional SoundDriver or subclass
+        @fps     - Count of main game loop cycles per second
+        @ui_fps  - draw_ui() calls per second
         """
         cls._display = display
         cls._world   = world
@@ -906,23 +844,12 @@ class Game:
         display.init()
 
     @classmethod
-    def set_sound(cls, driver):
-        """
-        Attach or swap the sound driver at any time.
-        Pass a pibody.Buzzer directly - no wrapper needed.
-
-        Example:
-            from pibody import Buzzer
-            Game.set_sound(Buzzer(12))
-        """
+    def set_sound(cls, driver): 
         cls._sound = driver
 
     @classmethod
     def get_sound(cls):
-        """Return the current sound driver (may be None)."""
         return cls._sound
-
-    # -- Simulation control ---------------------------------------------------
 
     @classmethod
     def start(cls):
@@ -939,8 +866,6 @@ class Game:
     @classmethod
     def set_fps(cls, fps: int):
         cls._fps = max(1, min(60, fps))
-
-    # -- Main loop ------------------------------------------------------------
 
     @classmethod
     def run(cls): 
@@ -959,26 +884,10 @@ class Game:
                 cls._world.draw_ui()
                 cls._prev_ui_ms = current_ms
 
-            # === DISPLAY IMPL: time.sleep_ms(...) ===
-
-    # -- Input ----------------------------------------------------------------
-
     @classmethod
     def _tick_input(cls):
         # === DISPLAY IMPL: fill _keys_down and _last_key from GPIO/UART/USB ===
         pass
-
-    @classmethod
-    def is_key_down(cls, key_name: str) -> bool:
-        return key_name in cls._keys_down
-
-    @classmethod
-    def get_key(cls):
-        key = cls._last_key
-        cls._last_key = None
-        return key
-
-    # -- Helpers --------------------------------------------------------------
 
     @staticmethod
     def get_random_number(limit: int) -> int:
@@ -986,26 +895,13 @@ class Game:
 
     @staticmethod
     def play_sound(source):
-        """
-        Quick one-shot sound.
-        source: note str, melody list, or filename str - same as GameSound.
-        """
         GameSound(source).play()
 
     @staticmethod
     def get_mic_level() -> int:
-        # === DISPLAY IMPL: ADC / I2S ===
+        # === DISPLAY IMPL: ADC / PWM / I2S ===
         return 0
 
-    @staticmethod
-    def delay(time: int):
-        # === DISPLAY IMPL: time.sleep_ms(time * step_ms) ===
-        pass
-
-
-# =============================================================================
-#  World
-# =============================================================================
 class World:
     def __init__(self, world_width: int, world_height: int,
                 cell_size: int = 1, input=None, bounded: bool = True):
@@ -1053,7 +949,6 @@ class World:
     def set_paint_order(self, *classes):
         self._paint_order = classes
 
-    # ======================= Rendering =======================
     def _render(self):
         drv = Game._display
         if not drv:
@@ -1101,8 +996,6 @@ class World:
 
             actor._prev_x = actor._x
             actor._prev_y = actor._y
-
-        # self.draw_ui()
         drv.show()
 
     def _clear_old_positions(self, drv):
@@ -1158,7 +1051,13 @@ class World:
             if id(a) not in seen:
                 ordered.append(a)
         return ordered
-
+    
+    def get_objects_at(self, x: int, y: int, cls) -> list:
+        return [
+            a for a in self._actors
+            if (cls is None or isinstance(a, cls)) and a._x == x and a._y == y
+        ]
+    
     def draw_ui(self):
         pass
 
@@ -1167,13 +1066,8 @@ class World:
     def get_cell_size(self): return self._cell_size
     def act(self):           pass
 
-# =============================================================================
-#  Actor
-# =============================================================================
-
-class Actor:
-    """Base class for world objects. Override act() in subclass."""
-
+class Actor: 
+    #* Base class for world objects. Override act() in subclass.
     def __init__(self):
         self._world:World = None
         self._x           = 0
@@ -1301,7 +1195,7 @@ class Actor:
     def get_one_intersecting_object(self, cls):
         lst = self.get_intersecting_objects(cls)
         return lst[0] if lst else None
-
+    
     def get_objects_at_offset(self, dx: int, dy: int, cls) -> list:
         if self._world is None: return []
         return self._world.get_objects_at(self._x + dx, self._y + dy, cls)

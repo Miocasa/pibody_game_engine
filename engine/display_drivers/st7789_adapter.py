@@ -90,15 +90,14 @@ class ST7789Driver(DisplayDriver):
         self._font = _font_medium   # default font for text()
         
 
-    # -- Basical operations ----------------------------------------------------
 
     def init(self):
-        """Init/reset display."""
+        # Init/reset display.
         self._drv.init()
         self._drv.fill(st7789.BLACK)
 
     def show(self):
-        """ST7789 update after every write and don't use buffer, leave function for compatibility."""
+        # ST7789 update after every write and don't use buffer, leave function for compatibility.
         pass
 
     def fill(self, color: int):
@@ -113,7 +112,7 @@ class ST7789Driver(DisplayDriver):
 
     def color(self, r, g, b):
         return st7789.color565(r, g, b)
-    # -- Lines and shapes  ------------------------------------------------------
+
 
     def hline(self, x: int, y: int, w: int, color: int):
         self._drv.hline(x, y, w, color)
@@ -131,7 +130,6 @@ class ST7789Driver(DisplayDriver):
         self._drv.fill_rect(x, y, w, h, color)
 
     def ellipse(self, x: int, y: int, rx: int, ry: int, color: int, fill: bool = False):
-        # st7789 not have ellipse drawing functinal, use basical method
         super().ellipse(x, y, rx, ry, color, fill)
 
     def polygon(self, xs, ys, n: int, color: int, fill: bool = False):
@@ -139,18 +137,6 @@ class ST7789Driver(DisplayDriver):
 
     def print(self, string: str, x: int, y: int, color: int,
             size: int = 1, bg: int = st7789.BLACK, font=None):
-        """
-        Print text.
-
-        parametres
-        ----------
-        string : str
-        x, y   : int   - upper left corner position
-        color  : int   - text color (RGB565)
-        size   : int   - not used (size set by font)(compatibility)
-        bg     : int   - background color (RGB565)
-        font           - vga2_* font module; if None uses self._font
-        """
         fnt = font if font is not None else self._font
         self._drv.text(fnt, string, x, y, color, bg)
 
@@ -177,7 +163,7 @@ class ST7789Driver(DisplayDriver):
 
         self._drv.blit_buffer(img._buf, x, y, img.width, img.height)
 
-    # -- Addictinal methods -------------------------------
+
     def set_rotation(self, rotation: int):
         self._rotation = rotation % 4
         
@@ -191,15 +177,12 @@ class ST7789Driver(DisplayDriver):
         self._drv.rotation(self._rotation)
 
     def color565(self, r: int, g: int, b: int) -> int:
-        """Pack RGB -> RGB565."""
         return st7789.color565(r, g, b)
 
     def color_from(self, color: Color) -> int:
-        """Convert engine.Color -> RGB565 int."""
         return color.pack_rgb565()
 
     def set_font(self, font):
-        """Set default font for text()."""
         self._font = font
 
     def draw_circle(
@@ -211,7 +194,6 @@ class ST7789Driver(DisplayDriver):
         start_angle: int = 0,
         end_angle: int = 360,
     ):
-        """Arc / circle using pixel-by-pixel corner traversal."""
         for dr in range(r, r + width):
             for deg in range(start_angle, end_angle):
                 rad = math.pi / 180 * deg
@@ -224,7 +206,6 @@ class ST7789Driver(DisplayDriver):
     def draw_round_rectangle(
         self, x: int, y: int, w: int, h: int, r: int, color: int, width: int = 1
     ):
-        """Rectangle with rounded corners."""
         r = max(1, min(r, min(w, h) // 2))
         for s in range(max(1, width)):
             xi, yi = x + s, y + s
@@ -240,7 +221,6 @@ class ST7789Driver(DisplayDriver):
             self._draw_quarter_circle(xi + wi - ri - 1, yi + hi - ri - 1, ri, color, 0)
 
     def fill_round_rectangle(self, x: int, y: int, w: int, h: int, r: int, color: int):
-        """Rectangle with rounded corners (fill)."""
         r = max(1, min(r, min(w, h) // 2))
         self.fill_rect(x + r, y,         w - 2 * r, h,         color)
         self.fill_rect(x,     y + r,     r,         h - 2 * r, color)
@@ -263,7 +243,6 @@ class ST7789Driver(DisplayDriver):
         color: int = st7789.GREEN,
         background_color: int = st7789.WHITE,
     ):
-        """Circle progress indicator."""
         angle = int(
             min(max(value - min_value, 0), max_value - min_value)
             / (max_value - min_value)
@@ -272,8 +251,6 @@ class ST7789Driver(DisplayDriver):
         self.draw_circle(background_color, cx, cy, r, width, angle - 90, 270)
         self.draw_circle(color,            cx, cy, r, width, -90,       angle - 90)
 
-    # -- Helper methods -------------------------------
-    
     def _draw_quarter_circle(self, cx: int, cy: int, r: int, color: int, quadrant: int):
         """Draw quater of circle for rounded corners of draw_round_rectangle().
         quadrant: 0=bottom-right, 1=bottom-left, 2=top-left, 3=top-right
@@ -341,7 +318,7 @@ class ST7789Driver(DisplayDriver):
             self.print(first_str, text_x, icon_y - 36, font=self.FONT_BOLD, color=self.BLACK, bg=self.WHITE)
             self.print(second_str, text_x, icon_y - 4,  font=self.FONT_BOLD, color=self.BLACK, bg=self.WHITE)
 
-        # print link in botton right corner
+        # === print link in botton right corner
         (tw, th) = self.get_text_size(link_str) # get text size
         self.print(link_str, self.width - tw, self.height - th, color=self.BLACK, bg=self.WHITE)
 
