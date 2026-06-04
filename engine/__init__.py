@@ -7,6 +7,10 @@ def __getattr__(name):
         from .input import Input
         return Input
     
+    if name == "IMU":
+        from .IMU import IMU
+        return IMU
+    
     if name == "Actor":
         from .GameEngine import Actor
         return Actor
@@ -66,6 +70,7 @@ except ZeroDivisionError:
 if FAKE_IMPORT:  # type: ignore
     from .GameEngine import *
     from .display_drivers.st7789_adapter import ST7789Driver as st7789
+    from .display_drivers.st7789_adapter import ST7789Driver as Display
     from .Demo import demo
     from .input import Input
     from .IO_Test import iotest
