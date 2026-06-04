@@ -27,7 +27,7 @@ class Demo:
         self.drv.show()              # initialize display state BEFORE drawing anything
 
         self.drv.draw_logo()
-        sleep(5)
+        sleep(1)
         self.drv.fill(self.drv.BLACK)
 
         self._header_h = self._draw_header()
