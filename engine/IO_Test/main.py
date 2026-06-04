@@ -1,11 +1,10 @@
-from machine import Pin, SoftI2C
-from neopixel import NeoPixel
+from machine import Pin, SoftI2C    # type: ignore
+from neopixel import NeoPixel       # type: ignore
 from engine import st7789, Input, DisplayDriver
 from engine.Buzzer import Buzzer
 from time import sleep
 import time
 import math
-import framebuf
 
 
 PIN_BUZZER   = 12
@@ -16,10 +15,93 @@ CUBE_CX,   CUBE_CY,   CUBE_SZ = 70,  120, 48
 BUBBLE_CX, BUBBLE_CY, BUBBLE_R = 195, 120, 42
 
 
+
+class GyroCalibrator:
+    _SAMPLES   = 5
+    _DELAY_MS  = 200
+    _COUNTDOWN = 3
+
+    _COL_OVERLAY = st7789.BLACK
+    _COL_TITLE   = st7789.YELLOW
+    _COL_OK      = st7789.GREEN
+    _COL_ERR     = st7789.RED
+    _COL_INFO    = st7789.BLUE
+
+    _OX, _OY, _OW, _OH = 10, 70, 220, 110
+
+    def __init__(self, drv, inp: Input):
+        self._drv = drv
+        self._inp = inp
+
+    def run(self):
+        drv = self._drv
+        inp = self._inp
+
+        
+        for sec in range(self._COUNTDOWN, 0, -1):
+            self._draw_overlay(
+                'CALIBRATION',
+                'Place device flat',
+                'Starting in  ' + str(sec) + ' ...',
+                self._COL_INFO,
+            )
+            deadline = time.ticks_add(time.ticks_ms(), 1000)
+            while time.ticks_diff(deadline, time.ticks_ms()) > 0:
+                pass
+
+        sums = [0.0] * 6
+        for i in range(self._SAMPLES):
+            self._draw_overlay(
+                'CALIBRATION',
+                'Measuring... ' + str(i + 1) + '/' + str(self._SAMPLES),
+                '',
+                self._COL_TITLE,
+            )
+            gx, gy, gz = inp.read_gyro_raw()
+            ax, ay, az = inp.read_accel_raw()
+            sums[0] += gx;  sums[1] += gy;  sums[2] += gz
+            sums[3] += ax;  sums[4] += ay;  sums[5] += az
+            deadline = time.ticks_add(time.ticks_ms(), self._DELAY_MS)
+            while time.ticks_diff(deadline, time.ticks_ms()) > 0:
+                pass
+
+        n = self._SAMPLES
+        off = [round(s / n, 4) for s in sums]
+
+        off[5] = round(off[5] - 1.0, 4)
+
+        print('=== GYRO CALIBRATION RESULT ===')
+        print('  GX offset:', off[0])
+        print('  GY offset:', off[1])
+        print('  GZ offset:', off[2])
+        print('  AX offset:', off[3])
+        print('  AY offset:', off[4])
+        print('  AZ offset:', off[5], '(gravity removed)')
+        print('================================')
+
+
+        ok = inp.set_calibration(*off)
+
+        msg2 = 'Saved to gyro_offset.json' if ok else 'Save FAILED (check fs)'
+        col  = self._COL_OK if ok else self._COL_ERR
+        self._draw_overlay('DONE!', 'Offsets applied.', msg2, col)
+        sleep(2)
+        drv.fill(drv.BLACK)
+
+    def _draw_overlay(self, title, line1, line2, col):
+        drv = self._drv
+        ox, oy, ow, oh = self._OX, self._OY, self._OW, self._OH
+        drv.fill_rect(ox, oy, ow, oh, self._COL_OVERLAY)
+        drv.draw_round_rectangle(ox, oy, ow, oh, 8, col)
+        tw, _ = drv.get_text_size(title)
+        drv.print(title, ox + (ow - tw) // 2, oy + 10, col)
+        drv.print(line1, ox + 8, oy + 34, drv.WHITE)
+        drv.print(line2, ox + 8, oy + 54, drv.WHITE)
+
 class FpsLimiter:
     def __init__(self, fps):
         self._period_ms = int(1000 / fps)
-        self._prev_ms   = time.ticks_ms() - self._period_ms
+        self._prev_ms   = time.ticks_ms() - self._period_ms 
 
     def ready(self):
         now = time.ticks_ms()
@@ -27,13 +109,6 @@ class FpsLimiter:
             self._prev_ms = now
             return True
         return False
-
-class _BufProxy:
-    __slots__ = ('_buf', 'width', 'height')
-    def __init__(self, buf, w, h):
-        self._buf   = buf
-        self.width  = w
-        self.height = h
 
 class RotatingCube:
     _VERTS = (
@@ -51,23 +126,15 @@ class RotatingCube:
     _COL_EDGE   = 0x4208
 
     def __init__(self, drv, cx, cy, size):
-        self._drv  = drv
-        self.cx    = cx
-        self.cy    = cy
-        self.size  = size
-        self._rx   = 0.0
-        self._ry   = 0.0
-        self._rz   = 0.0
-
-        # FrameBuffer for cube
-        pad        = size + 20
-        self._pad  = pad
-        self._bw   = pad * 2
-        self._bh   = pad * 2
-        self._buf  = bytearray(self._bw * self._bh * 2)
-        self._fb   = framebuf.FrameBuffer(self._buf, self._bw, self._bh, framebuf.RGB565)
-        # draw_image ожидает объект с полями _buf / width / height
-        self._img_proxy = _BufProxy(self._buf, self._bw, self._bh)
+        self._drv       = drv
+        self.cx         = cx
+        self.cy         = cy
+        self.size       = size
+        self._rx        = 0.0
+        self._ry        = 0.0
+        self._rz        = 0.0
+        self._prev_pts  = None
+        self._prev_apts = None
 
     def update_rotation(self, gx, gy, gz, dt=0.016):
         s = math.pi / 180.0 * dt
@@ -86,38 +153,45 @@ class RotatingCube:
 
     def _proj(self, x, y, z):
         d = 3.5 / (3.5 + z)
-        return int(self._pad + x*self.size*d), int(self._pad + y*self.size*d)
+        return int(self.cx + x*self.size*d), int(self.cy + y*self.size*d)
 
     def draw(self):
         drv = self._drv
-        fb  = self._fb
-
-        # clear buffer
-        fb.fill(0x0000)
+        cx, cy = self.cx, self.cy
 
         pts = []
         for vx, vy, vz in self._VERTS:
             rx, ry, rz = self._rotate(vx, vy, vz)
             pts.append(self._proj(rx, ry, rz))
 
-        for i, j in self._EDGES:
-            fb.line(pts[i][0], pts[i][1], pts[j][0], pts[j][1], self._swap16(self._COL_EDGE))
-
-        for i, (ax, ay, az) in enumerate(self._AXIS_VERTS):
+        apts = []
+        for ax, ay, az in self._AXIS_VERTS:
             rx, ry, rz = self._rotate(ax, ay, az)
-            tx, ty = self._proj(rx, ry, rz)
-            col16 = self._swap16(self._AXIS_COLS[i])
-            fb.line(self._pad, self._pad, tx, ty, col16)
-            fb.text(self._AXIS_LABS[i], tx - 3, ty - 9, col16)
+            apts.append(self._proj(rx, ry, rz))
 
-        drv.draw_image(self._img_proxy, self.cx - self._pad, self.cy - self._pad)
+        if self._prev_pts is not None:
+            pp = self._prev_pts
+            for i, j in self._EDGES:
+                drv.line(pp[i][0], pp[i][1], pp[j][0], pp[j][1], drv.BLACK)
+            pa = self._prev_apts
+            for k in range(3):
+                tx, ty = pa[k]
+                drv.line(cx, cy, tx, ty, drv.BLACK)
+                drv.fill_rect(tx - 4, ty - 11, 10, 12, drv.BLACK)
 
-    @staticmethod
-    def _swap16(c):
-        return ((c & 0xFF) << 8) | (c >> 8)
+        for i, j in self._EDGES:
+            drv.line(pts[i][0], pts[i][1], pts[j][0], pts[j][1], self._COL_EDGE)
+
+        for k, (tx, ty) in enumerate(apts):
+            drv.line(cx, cy, tx, ty, self._AXIS_COLS[k])
+            drv.print(self._AXIS_LABS[k], tx - 3, ty - 10, self._AXIS_COLS[k])
+
+        self._prev_pts  = pts
+        self._prev_apts = apts
 
     def invalidate(self):
-        pass
+        self._prev_pts  = None
+        self._prev_apts = None
 
 
 class BubbleLevel:
@@ -209,12 +283,11 @@ class BubbleLevel:
         self._prev_filled  = None
         self._prev_z_pos   = None
 
-
 class GyroValues:
     _LABELS = ('GX:','GY:','GZ:','AX:','AY:','AZ:')
     _COLS   = (0x07FF,0x07FF,0x07FF,0x07E0,0x07E0,0x07E0)
     _YS     = (24,40,56,96,112,128)
-    _TX     = 148
+    _TX     = 148 + 50 + 40 + 18
 
     def __init__(self, drv):
         self._drv   = drv
@@ -225,16 +298,17 @@ class GyroValues:
         drv    = self._drv
         values = (gx, gy, gz, ax, ay, az)
         if not self._drawn:
-            drv.print('GYRO',   self._TX, 8,   drv.WHITE)
-            drv.print('ACCEL',  self._TX, 80,  drv.WHITE)
-            drv.print('[A+B]>', self._TX, 160, drv.YELLOW)
+            drv.print('GYRO',        self._TX, 8,   drv.WHITE)
+            drv.print('ACCEL',       self._TX, 80,  drv.WHITE)
+            drv.print('[A+B]>',      self._TX, 160, drv.YELLOW)
+            drv.print('[A+Dn]CALIB', self._TX, 176, 0x4208)
             self._drawn = True
         fw, _ = drv.get_text_size('X')
         for i, val in enumerate(values):
             if val != self._prev[i]:
                 y = self._YS[i]
                 drv.fill_rect(self._TX, y, fw*12, 14, drv.BLACK)
-                drv.print(self._LABELS[i] + str(val), self._TX, y, self._COLS[i])
+                drv.print(self._LABELS[i] + str(round(val, 2)), self._TX, y, self._COLS[i])
                 self._prev[i] = val
 
     def invalidate(self):
@@ -315,6 +389,7 @@ class BuzzerUI:
             self._buzzer.boop()
         self._b_prev = b
 
+
         if ni != self._p_note:
             if self._p_note >= 0:
                 self._draw_key(self._p_note, selected=False)
@@ -334,7 +409,7 @@ class BuzzerUI:
         drv.print('^v  octave',       8, 163, self._COL_DIM)
         drv.print('A   hold to play', 8, 178, self._COL_DIM)
         drv.print('B   boop',         8, 193, self._COL_DIM)
-        
+
         for i in range(len(self._NOTES)):
             self._draw_key(i, selected=(i == self._note_i))
         self._drawn = True
@@ -362,6 +437,7 @@ class BuzzerUI:
         drv.print('OCT',  120, 28, 0x39E7)
         drv.print(str(self._oct), 160, 28, drv.CYAN)
         drv.print(freq_str, 8, 48, self._COL_DIM)
+
 
 class LedUI:
     _PALETTE = (
@@ -406,7 +482,6 @@ class LedUI:
     def update(self, inp):
         if not self._drawn:
             self._draw_static()
-            # первый полный прогон
             for i in range(self._n):
                 self._draw_led(i)
             for i in range(len(self._PALETTE)):
@@ -454,6 +529,7 @@ class LedUI:
                 self._draw_led(i)
         self._b_prev = b
 
+        # перерисовываем только то что изменилось
         if sl != self._p_led:
             if self._p_led >= 0:
                 self._draw_led(self._p_led)
@@ -630,10 +706,11 @@ class GamepadUI:
         drv.fill_round_rectangle(dx, dy, self.DPAD_W, self.DPAD_H, self.DPAD_R, drv.BLACK)
         drv.draw_round_rectangle(dx, dy, self.DPAD_W, self.DPAD_H, self.DPAD_R, drv.WHITE)
 
+
 class IOTest:
     _STATES_N = 4
 
-    # FPS for: gamepad, gyro, buzzer, led
+    # FPS for gamepad, gyro, buzzer, led
     _FPS = (60, 30, 30, 30)
 
     def __init__(self):
@@ -647,10 +724,11 @@ class IOTest:
         self._ui     = GamepadUI(self.drv, self.input)
         self._buz_ui = BuzzerUI(self.drv, self.buzzer)
         self._led_ui = LedUI(self.drv, self.led, NEOPIXEL_N)
-        self._st      = 0
-        self._ab_lock = self.input.is_A() and self.input.is_B()
+        self._calib      = GyroCalibrator(self.drv, self.input)
+        self._st         = 0
+        self._ab_lock    = self.input.is_A() and self.input.is_B()
+        self._calib_lock = False
         self._running = True
-
         self._fps_limiters = [FpsLimiter(fps) for fps in self._FPS]
 
     def run(self):
@@ -661,7 +739,6 @@ class IOTest:
         self.drv.fill(self.drv.BLACK)
 
         while self._running:
-
             self._handle_next()
 
             if self._fps_limiters[self._st].ready():
@@ -692,8 +769,25 @@ class IOTest:
             self._running = False
 
     def _test_gyro(self):
-        gx, gy, gz = self.input.read_gyro()
-        ax, ay, az = self.input.read_accel()
+        inp = self.input
+
+        calib_pressed = inp.is_A() and inp.is_down()
+        if calib_pressed and not self._calib_lock:
+            self._calib_lock = True
+            self._calib.run()
+
+            self._cube.invalidate()
+            self._bubble.invalidate()
+            self._values.invalidate()
+            return
+        if not calib_pressed:
+            self._calib_lock = False
+
+        gx, gy, gz = inp.read_gyro()
+        ax, ay, az = inp.read_accel()
+        gx = round(gx, 2);  gy = round(gy, 2);  gz = round(gz, 2)
+        ax = round(ax, 2);  ay = round(ay, 2);  az = round(az, 2)
+
         self._cube.update_rotation(gx, gy, gz)
         self._cube.draw()
         self._bubble.draw(ax, ay, az)
