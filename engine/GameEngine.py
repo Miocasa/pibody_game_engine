@@ -1052,6 +1052,18 @@ class World:
                 ordered.append(a)
         return ordered
     
+    def get_object_by_cls(self, cls):
+        for a in self._actors:
+            if (cls is None or isinstance(a, cls)):
+                return a
+        return None
+    
+    def get_objects_by_cls(self, cls) -> list:
+        return [
+            a for a in self._actors
+            if (cls is None or isinstance(a, cls))
+        ]
+
     def get_objects_at(self, x: int, y: int, cls) -> list:
         return [
             a for a in self._actors
