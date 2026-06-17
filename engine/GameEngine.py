@@ -945,7 +945,21 @@ class World:
                 self._clear_area(Game._display, px, py, img.width, img.height)
             self._actors.remove(actor)
             actor._world = None
+    
+    def remove_objects(self, actors: list["Actor"]):
+        for actor in actors:
+            if actor in self._actors:
+                if actor._prev_x is not None and actor.get_image():
+                    img = actor.get_image()
+                    px = actor._prev_x * self._cell_size
+                    py = actor._prev_y * self._cell_size
+                    self._clear_area(Game._display, px, py, img.width, img.height)
+                self._actors.remove(actor)
+                actor._world = None
 
+    def get_objets(self):
+        return self._actors
+    
     def set_paint_order(self, *classes):
         self._paint_order = classes
 
