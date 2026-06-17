@@ -1,8 +1,7 @@
 from .space_invaders import run_space_invaders
 from .pong import run_pong
 from engine import iotest
-from game import run_game
-
+from .snake import run_snake
 def empty_func(*args):
     pass
 
@@ -30,13 +29,13 @@ GamesInfoList: list[GameInfo] = [
         save_file = ""
     ),
     GameInfo(
-        name      = "Test In/Out",
-        call_func = iotest.run, #! iotest.run will return error: TypeError: 'module' object isn't callable
+        name      = "Snake",
+        call_func = run_snake,
         save_file = ""
     ),
     GameInfo(
-        name      = "Test stability",
-        call_func = run_game,
+        name      = "Test In/Out",
+        call_func = iotest.run, #! iotest.run will return error: TypeError: 'module' object isn't callable
         save_file = ""
     ),
     GameInfo(
