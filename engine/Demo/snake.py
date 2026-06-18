@@ -168,13 +168,14 @@ class MenuWorld(World):
         drv.show()
         self._drawn_static = True
 
-    def _clear_line(self, drv, y, w=200, h=14):
+    def _clear_line(self, drv, y, w=200, h=15):
         drv.fill_rect(10, y, w, h, bg.pack())
 
     def _draw_level_line(self, drv):
         lvl_color = Color.YELLOW.pack() if self.selecting_level else Color.WHITE.pack()
         prefix = "> " if self.selecting_level else "  "
-        self._clear_line(drv, self.y_level)
+        
+        self._clear_line(drv, self.y_level, w = 300)
         drv.print(prefix + "Уровень: " + LEVEL_NAMES[LEVELS[self.level_idx]], 10, self.y_level,
                     color=lvl_color, bg=bg.pack())
 
@@ -335,6 +336,9 @@ class SnakeWorld(World):
     def act(self):
         inp = self.input
         
+        if inp.is_B():
+            print("B pressed")
+            Game.stop()
         if self.over:
             if inp.is_A():
                 print("A pressed")
