@@ -12,38 +12,38 @@ def __getattr__(name):
         return IMU
     
     if name == "Actor":
-        from .GameEngine import Actor
+        from .engine import Actor
         return Actor
     
     if name == "Color":
-        from .GameEngine import Color
+        from .engine import Color
         return Color
     
     if name == "DisplayDriver":
-        from .GameEngine import DisplayDriver
+        from .engine import DisplayDriver
         return DisplayDriver
     
     if name == "Font":
-        from .GameEngine import Font
+        from .engine import Font
         return Font
     
     if name == "Game":
-        from .GameEngine import Game
+        from .engine import Game
         return Game
     
     if name == "GameImage":
-        from .GameEngine import GameImage
+        from .engine import GameImage
         return GameImage
     
     if name == "GameSound":
-        from .GameEngine import GameSound
+        from .engine import GameSound
         return GameSound
     
     if name == "World":
-        from .GameEngine import World
+        from .engine import World
         return World
     if name == "Font":
-        from .GameEngine import Font
+        from .engine import Font
         return Font
     
     if name == "Buzzer":
@@ -68,7 +68,7 @@ except ZeroDivisionError:
     FAKE_IMPORT = False
 
 if FAKE_IMPORT:  # type: ignore
-    from .GameEngine import *
+    from .engine import *
     from .display_drivers.st7789_adapter import ST7789Driver as st7789
     from .display_drivers.st7789_adapter import ST7789Driver as Display
     from .Demo import demo

@@ -5,7 +5,7 @@ import vga2_10x20 as _font_medium # type: ignore
 import vga2_16x32 as _font_bold   # type: ignore
 
 import math
-from engine.GameEngine import DisplayDriver, Color
+from engine.engine import DisplayDriver, Color
 
 
 

@@ -309,7 +309,7 @@ class MessageActor(Actor):
             drv = self.get_world().get_display()
             if drv:
                 drv.fill(drv.BLACK)
-            from engine.GameEngine import Game
+            from engine.engine import Game
             Game.set_world(SpaceInvadersWorld(sound=sound))
 
 # World
